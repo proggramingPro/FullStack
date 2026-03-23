@@ -26,11 +26,11 @@ export default function HostModal({ onClose }: HostModalProps) {
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [pricePerNight, setPricePerNight] = useState<number>(0);
   const [location, setLocation] = useState('');
-  const [bedrooms, setBedrooms] = useState<number>(1);
-  const [bathrooms, setBathrooms] = useState<number>(1);
-  const [maxGuests, setMaxGuests] = useState<number>(1);
+  const [pricePerNight, setPricePerNight] = useState<number | ''>('');
+const [bedrooms, setBedrooms] = useState<number | ''>('');
+const [bathrooms, setBathrooms] = useState<number | ''>('');
+const [maxGuests, setMaxGuests] = useState<number | ''>('');
   const [amenitiesText, setAmenitiesText] = useState('');
   const [imageUrlsText, setImageUrlsText] = useState('');
 
@@ -38,20 +38,12 @@ export default function HostModal({ onClose }: HostModalProps) {
   const userMetaPhone = (user?.user_metadata?.phone as string | undefined) || '';
 
   const amenities = useMemo(
-    () =>
-      amenitiesText
-        .split(',')
-        .map((s) => s.trim())
-        .filter(Boolean),
+    () => amenitiesText.split(',').map(s => s.trim()).filter(Boolean),
     [amenitiesText]
   );
 
   const imageUrls = useMemo(
-    () =>
-      imageUrlsText
-        .split(',')
-        .map((s) => s.trim())
-        .filter(Boolean),
+    () => imageUrlsText.split(',').map(s => s.trim()).filter(Boolean),
     [imageUrlsText]
   );
 
@@ -69,20 +61,17 @@ export default function HostModal({ onClose }: HostModalProps) {
   const load = async () => {
     if (!user) return;
     setLoading(true);
-    setError('');
-    setSuccess('');
     try {
       const app = await getMyHostApplication(user.id);
-      if (!app) {
-        setStatus('none');
-      } else {
+      if (!app) setStatus('none');
+      else {
         setFullName(app.full_name || userMetaName);
         setPhone(app.phone || userMetaPhone);
         setMessage(app.message || '');
         setStatus(app.status);
       }
     } catch (err: any) {
-      setError(err.message || 'Failed to load host application');
+      setError(err.message);
     } finally {
       setLoading(false);
     }
@@ -91,19 +80,12 @@ export default function HostModal({ onClose }: HostModalProps) {
   const handleApply = async () => {
     if (!user) return;
     setSubmitting(true);
-    setError('');
-    setSuccess('');
     try {
-      await applyToBecomeHost({
-        userId: user.id,
-        fullName,
-        phone,
-        message,
-      });
-      setSuccess('Application submitted. Please wait for admin approval.');
+      await applyToBecomeHost({ userId: user.id, fullName, phone, message });
+      setSuccess('Application submitted');
       setStatus('pending');
     } catch (err: any) {
-      setError(err.message || 'Failed to submit application');
+      setError(err.message);
     } finally {
       setSubmitting(false);
     }
@@ -112,8 +94,6 @@ export default function HostModal({ onClose }: HostModalProps) {
   const handleCreateProperty = async () => {
     if (!user) return;
     setSubmitting(true);
-    setError('');
-    setSuccess('');
     try {
       await createRentalHouse({
         ownerId: user.id,
@@ -127,18 +107,9 @@ export default function HostModal({ onClose }: HostModalProps) {
         amenities,
         imageUrls,
       });
-      setSuccess('House listed successfully!');
-      setTitle('');
-      setDescription('');
-      setPricePerNight(0);
-      setLocation('');
-      setBedrooms(1);
-      setBathrooms(1);
-      setMaxGuests(1);
-      setAmenitiesText('');
-      setImageUrlsText('');
+      setSuccess('House listed');
     } catch (err: any) {
-      setError(err.message || 'Failed to list house');
+      setError(err.message);
     } finally {
       setSubmitting(false);
     }
@@ -146,290 +117,250 @@ export default function HostModal({ onClose }: HostModalProps) {
 
   if (!user) return null;
 
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden">
-        <div className="p-6 border-b border-gray-200 flex items-center justify-between">
-          <div>
-            <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-              <Home className="w-6 h-6" />
-              Become a Host
-            </h2>
-            <p className="text-sm text-gray-500">
-              Apply for permission, then add your rental houses
-            </p>
-          </div>
-          <button
-            onClick={onClose}
-            className="p-2 hover:bg-gray-100 rounded-full transition-colors"
-          >
-            <X className="w-6 h-6" />
-          </button>
+ return (
+  <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+    <div className="bg-white w-full max-w-3xl rounded-lg border border-gray-200 shadow-xl">
+
+      {/* Header */}
+      <div className="flex items-center justify-between px-6 py-4 border-b">
+        <div>
+          <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
+            <Home className="w-5 h-5 text-gray-600" />
+            Host Management
+          </h2>
+          <p className="text-xs text-gray-500">Apply & manage your listings</p>
         </div>
 
-        {loading ? (
-          <div className="flex items-center justify-center py-16">
-            <Loader2 className="w-8 h-8 animate-spin text-orange-500" />
-          </div>
-        ) : (
-          <div className="p-6 space-y-5">
-            {error && (
-              <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
-                <p className="text-sm text-red-600">{error}</p>
-              </div>
-            )}
-            {success && (
-              <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
-                <p className="text-sm text-green-600">{success}</p>
-              </div>
-            )}
-
-            {status !== 'approved' && (
-              <div className="bg-gray-50 border border-gray-200 rounded-xl p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-900">
-                      Host application status
-                    </p>
-                    <p className="text-xs text-gray-600 mt-1">
-                      {status === 'none' && 'Not applied yet'}
-                      {status === 'pending' && 'Pending admin review'}
-                      {status === 'rejected' && 'Rejected — you can reapply'}
-                    </p>
-                  </div>
-                  <span
-                    className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                      status === 'pending'
-                        ? 'bg-yellow-100 text-yellow-700'
-                        : status === 'rejected'
-                          ? 'bg-red-100 text-red-700'
-                          : 'bg-gray-200 text-gray-700'
-                    }`}
-                  >
-                    {status === 'none' ? 'Not Applied' : status}
-                  </span>
-                </div>
-              </div>
-            )}
-
-            {status !== 'approved' && (
-              <div className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Full Name
-                    </label>
-                    <input
-                      value={fullName}
-                      onChange={(e) => setFullName(e.target.value)}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                      placeholder="Your name"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Phone
-                    </label>
-                    <input
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                      placeholder="Your phone number"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Message to admin (optional)
-                  </label>
-                  <textarea
-                    value={message}
-                    onChange={(e) => setMessage(e.target.value)}
-                    rows={3}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                    placeholder="Tell us what you want to rent out"
-                  />
-                </div>
-
-                <button
-                  type="button"
-                  onClick={handleApply}
-                  disabled={submitting || !fullName.trim() || !phone.trim()}
-                  className="w-full py-3 bg-gradient-to-r from-orange-500 to-pink-500 text-white font-semibold rounded-lg hover:from-orange-600 hover:to-pink-600 transition-all shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                >
-                  {submitting ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      Submitting...
-                    </>
-                  ) : (
-                    <>
-                      <Send className="w-4 h-4" />
-                      Apply for Permission
-                    </>
-                  )}
-                </button>
-              </div>
-            )}
-
-            {status === 'approved' && (
-              <div className="space-y-4">
-                <div className="bg-green-50 border border-green-200 rounded-xl p-4">
-                  <p className="text-sm font-medium text-green-800">
-                    Approved! You can now add rental houses.
-                  </p>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Title
-                    </label>
-                    <input
-                      value={title}
-                      onChange={(e) => setTitle(e.target.value)}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                      placeholder="Modern apartment near downtown"
-                    />
-                  </div>
-
-                  <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Description
-                    </label>
-                    <textarea
-                      value={description}
-                      onChange={(e) => setDescription(e.target.value)}
-                      rows={4}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                      placeholder="Describe your house..."
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Price per night
-                    </label>
-                    <input
-                      type="number"
-                      min={0}
-                      value={pricePerNight}
-                      onChange={(e) => setPricePerNight(Number(e.target.value))}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                      placeholder="120"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Location
-                    </label>
-                    <input
-                      value={location}
-                      onChange={(e) => setLocation(e.target.value)}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                      placeholder="City, Area"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Bedrooms
-                    </label>
-                    <input
-                      type="number"
-                      min={0}
-                      value={bedrooms}
-                      onChange={(e) => setBedrooms(Number(e.target.value))}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Bathrooms
-                    </label>
-                    <input
-                      type="number"
-                      min={0}
-                      value={bathrooms}
-                      onChange={(e) => setBathrooms(Number(e.target.value))}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Max guests
-                    </label>
-                    <input
-                      type="number"
-                      min={1}
-                      value={maxGuests}
-                      onChange={(e) => setMaxGuests(Number(e.target.value))}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                    />
-                  </div>
-
-                  <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Amenities (comma separated)
-                    </label>
-                    <input
-                      value={amenitiesText}
-                      onChange={(e) => setAmenitiesText(e.target.value)}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                      placeholder="WiFi, Parking, Kitchen"
-                    />
-                  </div>
-
-                  <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Image URLs (comma separated)
-                    </label>
-                    <input
-                      value={imageUrlsText}
-                      onChange={(e) => setImageUrlsText(e.target.value)}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                      placeholder="https://.../1.jpg, https://.../2.jpg"
-                    />
-                    <p className="mt-2 text-xs text-gray-500">
-                      Note: add at least 1 image URL.
-                    </p>
-                  </div>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={handleCreateProperty}
-                  disabled={
-                    submitting ||
-                    !title.trim() ||
-                    !description.trim() ||
-                    !location.trim() ||
-                    pricePerNight <= 0 ||
-                    imageUrls.length === 0
-                  }
-                  className="w-full py-3 bg-gradient-to-r from-orange-500 to-pink-500 text-white font-semibold rounded-lg hover:from-orange-600 hover:to-pink-600 transition-all shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                >
-                  {submitting ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      Saving...
-                    </>
-                  ) : (
-                    <>
-                      <PlusCircle className="w-4 h-4" />
-                      Add Rental House
-                    </>
-                  )}
-                </button>
-              </div>
-            )}
-          </div>
-        )}
+        <button
+          onClick={onClose}
+          className="p-2 rounded-md hover:bg-gray-100 transition"
+        >
+          <X className="w-5 h-5 text-gray-600" />
+        </button>
       </div>
+
+      {loading ? (
+        <div className="flex justify-center py-12">
+          <Loader2 className="w-6 h-6 animate-spin text-gray-500" />
+        </div>
+      ) : (
+        <div className="p-6 space-y-6">
+
+          {/* Alerts */}
+          {error && (
+            <div className="text-sm text-red-700 bg-red-50 border border-red-200 px-4 py-2 rounded-md">
+              {error}
+            </div>
+          )}
+
+          {success && (
+            <div className="text-sm text-green-700 bg-green-50 border border-green-200 px-4 py-2 rounded-md">
+              {success}
+            </div>
+          )}
+
+          {/* Status Card */}
+          {status !== 'approved' && (
+            <div className="flex items-center justify-between bg-gray-50 border border-gray-200 rounded-md px-4 py-3">
+              <div>
+                <p className="text-sm font-medium text-gray-700">
+                  Application Status
+                </p>
+                <p className="text-xs text-gray-500 mt-1">
+                  {status === 'none' && 'Not applied yet'}
+                  {status === 'pending' && 'Pending admin approval'}
+                  {status === 'rejected' && 'Rejected — you can reapply'}
+                </p>
+              </div>
+
+              <span
+                className={`px-3 py-1 text-xs font-medium rounded-full
+                  ${status === 'pending' && 'bg-yellow-100 text-yellow-700'}
+                  ${status === 'rejected' && 'bg-red-100 text-red-700'}
+                  ${status === 'none' && 'bg-gray-200 text-gray-700'}
+                `}
+              >
+                {status === 'none' ? 'Not Applied' : status}
+              </span>
+            </div>
+          )}
+
+          {/* Apply Form */}
+          {status !== 'approved' && (
+            <div className="border border-gray-200 rounded-md p-4 space-y-4">
+              <h3 className="text-sm font-semibold text-gray-700">
+                Host Application
+              </h3>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <input
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  placeholder="Full Name"
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-gray-800"
+                />
+
+                <input
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  placeholder="Phone Number"
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-gray-800"
+                />
+              </div>
+
+              <textarea
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                rows={3}
+                placeholder="Message (optional)"
+                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-gray-800"
+              />
+
+              <button
+                onClick={handleApply}
+                disabled={submitting || !fullName.trim() || !phone.trim()}
+                className="w-full flex items-center justify-center gap-2 bg-gray-900 text-white text-sm font-medium py-2 rounded-md hover:bg-gray-800 transition disabled:opacity-50"
+              >
+                {submitting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Submitting...
+                  </>
+                ) : (
+                  <>
+                    <Send className="w-4 h-4" />
+                    Apply for Permission
+                  </>
+                )}
+              </button>
+            </div>
+          )}
+
+          {/* Approved Section */}
+          {status === 'approved' && (
+            <div className="border border-gray-200 rounded-md p-4 space-y-4">
+              <div className="bg-green-50 border border-green-200 px-4 py-2 rounded-md text-sm text-green-700">
+                Approved — you can now add properties
+              </div>
+
+              <input
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="Property Title"
+                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-1 focus:ring-gray-800"
+              />
+
+              <textarea
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                rows={4}
+                placeholder="Description"
+                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-1 focus:ring-gray-800"
+              />
+
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+
+  <input
+    type="number"
+    value={pricePerNight}
+    onChange={(e) =>
+      setPricePerNight(e.target.value === '' ? '' : Number(e.target.value))
+    }
+    placeholder="Price"
+    className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm 
+    focus:outline-none focus:ring-1 focus:ring-gray-800
+    placeholder:text-gray-400"
+  />
+
+  <input
+    type="number"
+    value={bedrooms}
+    onChange={(e) =>
+      setBedrooms(e.target.value === '' ? '' : Number(e.target.value))
+    }
+    placeholder="Bedrooms"
+    className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm 
+    focus:outline-none focus:ring-1 focus:ring-gray-800
+    placeholder:text-gray-400"
+  />
+
+  <input
+    type="number"
+    value={bathrooms}
+    onChange={(e) =>
+      setBathrooms(e.target.value === '' ? '' : Number(e.target.value))
+    }
+    placeholder="Bathrooms"
+    className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm 
+    focus:outline-none focus:ring-1 focus:ring-gray-800
+    placeholder:text-gray-400"
+  />
+
+  <input
+    type="number"
+    value={maxGuests}
+    onChange={(e) =>
+      setMaxGuests(e.target.value === '' ? '' : Number(e.target.value))
+    }
+    placeholder="Guests"
+    className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm 
+    focus:outline-none focus:ring-1 focus:ring-gray-800
+    placeholder:text-gray-400"
+  />
+
+</div>
+
+              <input
+                value={location}
+                onChange={(e) => setLocation(e.target.value)}
+                placeholder="Location"
+                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-1 focus:ring-gray-800"
+              />
+
+              <input
+                value={amenitiesText}
+                onChange={(e) => setAmenitiesText(e.target.value)}
+                placeholder="Amenities (comma separated)"
+                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+              />
+
+              <input
+                value={imageUrlsText}
+                onChange={(e) => setImageUrlsText(e.target.value)}
+                placeholder="Image URLs"
+                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+              />
+
+              <button
+                onClick={handleCreateProperty}
+                disabled={
+                  submitting ||
+                  !title.trim() ||
+                  !description.trim() ||
+                  !location.trim() ||
+                  pricePerNight <= 0 ||
+                  imageUrls.length === 0
+                }
+                className="w-full flex items-center justify-center gap-2 bg-gray-900 text-white text-sm font-medium py-2 rounded-md hover:bg-gray-800 transition disabled:opacity-50"
+              >
+                {submitting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <PlusCircle className="w-4 h-4" />
+                    Add Rental House
+                  </>
+                )}
+              </button>
+            </div>
+          )}
+        </div>
+      )}
     </div>
+  </div>
+
   );
 }
-
