@@ -60,7 +60,7 @@ export default function BookingCard({ property }: BookingCardProps) {
         guests,
         total_price: total,
         status: 'confirmed',
-        booking_reference: `REF-${Date.now()}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`,
+        booking_reference: `REF-₹{Date.now()}-₹{Math.random().toString(36).slice(2, 8).toUpperCase()}`,
       };
       const { error } = await (supabase.from('bookings') as any).insert(insertData);
 
@@ -140,9 +140,9 @@ export default function BookingCard({ property }: BookingCardProps) {
         <div className="space-y-3 mb-6 pb-6 border-b border-gray-200">
           <div className="flex justify-between text-gray-700">
             <span>
-              ${property.price_per_night} x {nights} nights
+              ₹{property.price_per_night} x {nights} nights
             </span>
-            <span>${subtotal.toFixed(2)}</span>
+            <span>₹{subtotal.toFixed(2)}</span>
           </div>
           <div className="flex justify-between text-gray-700">
             <span>Service fee</span>
@@ -165,7 +165,7 @@ export default function BookingCard({ property }: BookingCardProps) {
 
       {message && (
         <p
-          className={`mt-4 text-sm text-center ${
+          className={`mt-4 text-sm text-center ₹{
             message.includes('success') ? 'text-green-600' : 'text-red-600'
           }`}
         >
