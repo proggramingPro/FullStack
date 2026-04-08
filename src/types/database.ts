@@ -4,33 +4,32 @@ export interface Database {
       properties: {
         Row: Property;
         Insert: Omit<Property, 'id' | 'created_at' | 'rating' | 'review_count'>;
-        Update: Partial<Omit<Property, 'id' | 'created_at'>>;
+        Update: Partial<Property>;
       };
       host_applications: {
         Row: HostApplication;
-        Insert: Omit<HostApplication, 'id' | 'created_at' | 'reviewed_at' | 'reviewed_by'>;
-        Update: Partial<Omit<HostApplication, 'id' | 'created_at' | 'user_id'>>;
+        Insert: Partial<HostApplication>;
+        Update: Partial<HostApplication>;
       };
       bookings: {
         Row: Booking;
-        Insert: Omit<Booking, 'id' | 'created_at' | 'booking_reference'> & {
-          booking_reference?: string;
-        };
-        Update: Partial<Omit<Booking, 'id' | 'created_at'>>;
+        Insert: Partial<Booking>;
+        Update: Partial<Booking>;
       };
       reviews: {
         Row: Review;
-        Insert: Omit<Review, 'id' | 'created_at'>;
-        Update: Partial<Omit<Review, 'id' | 'created_at'>>;
+        Insert: Partial<Review>;
+        Update: Partial<Review>;
       };
       profiles: {
         Row: Profile;
-        Insert: Omit<Profile, 'created_at' | 'updated_at'>;
-        Update: Partial<Omit<Profile, 'id' | 'created_at' | 'updated_at'>>;
+        Insert: Partial<Profile>;
+        Update: Partial<Profile>;
       };
     };
   };
 }
+
 
 export interface Property {
   id: string;
@@ -38,6 +37,8 @@ export interface Property {
   description: string;
   price_per_night: number;
   location: string;
+  lat?: number;
+  lng?: number;
   bedrooms: number;
   bathrooms: number;
   max_guests: number;
@@ -48,6 +49,7 @@ export interface Property {
   review_count: number;
   created_at: string;
 }
+
 
 export type HostApplicationStatus = 'pending' | 'approved' | 'rejected';
 

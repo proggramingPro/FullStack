@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useCallback } from 'react';
 import { X, Loader2, Home, Send, PlusCircle } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import {
@@ -27,12 +27,33 @@ export default function HostModal({ onClose }: HostModalProps) {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [location, setLocation] = useState('');
-  const [pricePerNight, setPricePerNight] = useState<number | ''>('');
-const [bedrooms, setBedrooms] = useState<number | ''>('');
-const [bathrooms, setBathrooms] = useState<number | ''>('');
-const [maxGuests, setMaxGuests] = useState<number | ''>('');
+const [pricePerNight, setPricePerNight] = useState<number>(0);
+const [bedrooms, setBedrooms] = useState<number>(1);
+const [bathrooms, setBathrooms] = useState<number>(1);
+  const [maxGuests, setMaxGuests] = useState<number | ''>('');
   const [amenitiesText, setAmenitiesText] = useState('');
-  const [imageUrlsText, setImageUrlsText] = useState('');
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+
+  const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    setSelectedFiles(files);
+    const previews = files.map((file) => URL.createObjectURL(file));
+    setImagePreviews(previews);
+  }, []);
+
+  const removeImage = useCallback((index: number) => {
+    const newFiles = selectedFiles.filter((_, i) => i !== index);
+    setSelectedFiles(newFiles);
+    const newPreviews = imagePreviews.filter((_, i) => i !== index);
+    setImagePreviews(newPreviews);
+  }, [selectedFiles, imagePreviews]);
+
+  useEffect(() => {
+    return () => {
+      imagePreviews.forEach((preview) => URL.revokeObjectURL(preview));
+    };
+  }, [imagePreviews]);
 
   const userMetaName = (user?.user_metadata?.full_name as string | undefined) || '';
   const userMetaPhone = (user?.user_metadata?.phone as string | undefined) || '';
@@ -42,10 +63,7 @@ const [maxGuests, setMaxGuests] = useState<number | ''>('');
     [amenitiesText]
   );
 
-  const imageUrls = useMemo(
-    () => imageUrlsText.split(',').map(s => s.trim()).filter(Boolean),
-    [imageUrlsText]
-  );
+  
 
   useEffect(() => {
     if (!user) return;
@@ -105,9 +123,9 @@ const [maxGuests, setMaxGuests] = useState<number | ''>('');
         bathrooms,
         maxGuests,
         amenities,
-        imageUrls,
+        files: selectedFiles,
       });
-      setSuccess('House listed');
+      setSuccess('Property created with images uploaded successfully!');
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -262,10 +280,15 @@ const [maxGuests, setMaxGuests] = useState<number | ''>('');
 
   <input
     type="number"
-    value={pricePerNight}
-    onChange={(e) =>
-      setPricePerNight(e.target.value === '' ? '' : Number(e.target.value))
-    }
+  type="number"
+  min="0"
+  step="0.01"
+  value={pricePerNight || ''}
+  onChange={(e) => setPricePerNight(Number(e.target.value) || 0)}
+  placeholder="0"
+  className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm 
+  focus:outline-none focus:ring-1 focus:ring-gray-800
+  placeholder:text-gray-400"
     placeholder="Price"
     className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm 
     focus:outline-none focus:ring-1 focus:ring-gray-800
@@ -274,10 +297,14 @@ const [maxGuests, setMaxGuests] = useState<number | ''>('');
 
   <input
     type="number"
-    value={bedrooms}
-    onChange={(e) =>
-      setBedrooms(e.target.value === '' ? '' : Number(e.target.value))
-    }
+  type="number"
+  min="1"
+  value={bedrooms}
+  onChange={(e) => setBedrooms(Math.max(1, Number(e.target.value)))}
+  placeholder="1"
+  className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm 
+  focus:outline-none focus:ring-1 focus:ring-gray-800
+  placeholder:text-gray-400"
     placeholder="Bedrooms"
     className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm 
     focus:outline-none focus:ring-1 focus:ring-gray-800
@@ -324,12 +351,38 @@ const [maxGuests, setMaxGuests] = useState<number | ''>('');
                 className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
               />
 
-              <input
-                value={imageUrlsText}
-                onChange={(e) => setImageUrlsText(e.target.value)}
-                placeholder="Image URLs"
-                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
-              />
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Property Images (multiple files)
+                </label>
+                <input
+                  type="file"
+                  multiple
+                  accept="image/*"
+                  onChange={handleFileChange}
+                  className="w-full border border-gray-300 rounded-md px-3 py-8 text-sm file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-gray-900 file:text-white hover:file:bg-gray-800 cursor-pointer"
+                />
+                {imagePreviews.length > 0 && (
+                  <div className="mt-3 grid grid-cols-2 md:grid-cols-3 gap-2 p-2 border rounded-md">
+                    {imagePreviews.map((preview, index) => (
+                      <div key={index} className="relative group">
+                        <img 
+                          src={preview} 
+                          alt={`Preview ${index + 1}`}
+                          className="w-full h-24 object-cover rounded-md"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removeImage(index)}
+                          className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
 
               <button
                 onClick={handleCreateProperty}
@@ -338,8 +391,8 @@ const [maxGuests, setMaxGuests] = useState<number | ''>('');
                   !title.trim() ||
                   !description.trim() ||
                   !location.trim() ||
-                  pricePerNight <= 0 ||
-                  imageUrls.length === 0
+                  (typeof pricePerNight === 'string' ? parseFloat(pricePerNight) <= 0 : pricePerNight <= 0) ||
+                  selectedFiles.length === 0
                 }
                 className="w-full flex items-center justify-center gap-2 bg-gray-900 text-white text-sm font-medium py-2 rounded-md hover:bg-gray-800 transition disabled:opacity-50"
               >

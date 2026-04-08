@@ -14,9 +14,13 @@ export default function PropertyCard({ property, onClick }: PropertyCardProps) {
     >
       <div className="relative aspect-[4/3] overflow-hidden">
         <img
-          src={property.image_urls[0]}
+          src={property.image_urls[0] || '/placeholder-house.jpg'}
           alt={property.title}
-          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+          loading="lazy"
+          onError={(e) => {
+            (e.target as HTMLImageElement).src = 'https://via.placeholder.com/400x300/6B7280/FFFFFF?text=No+Image';
+          }}
+          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500 bg-gray-200"
         />
         <div className="absolute top-3 right-3 bg-white px-3 py-1 rounded-full shadow-md flex items-center space-x-1">
           <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />

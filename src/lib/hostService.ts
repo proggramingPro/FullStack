@@ -1,5 +1,7 @@
 import { supabase } from './supabase';
 import type { HostApplication, HostApplicationStatus, Property } from '../types/database';
+import { uploadPropertyImages } from './uploadService';
+import { geocodeLocation } from './geocoding';
 
 
 export async function getMyHostApplication(userId: string): Promise<HostApplication | null> {
@@ -46,11 +48,9 @@ export async function createRentalHouse(params: {
   bathrooms: number;
   maxGuests: number;
   amenities: string[];
-  imageUrls: string[];
+  files?: File[];
 }): Promise<Property> {
-  const { data, error } = await supabase
-    .from('properties')
-    .insert({
+  let insertData = {
       title: params.title,
       description: params.description,
       price_per_night: params.pricePerNight,
@@ -59,13 +59,32 @@ export async function createRentalHouse(params: {
       bathrooms: params.bathrooms,
       max_guests: params.maxGuests,
       amenities: params.amenities,
-      image_urls: params.imageUrls,
+      image_urls: [],
       owner_id: params.ownerId,
-    })
+    };
+
+    try {
+      const coords = await geocodeLocation(params.location);
+      insertData = { ...insertData, lat: coords.lat, lng: coords.lng };
+      console.info(`Geocoded property location: ${params.location} -> (${coords.lat.toFixed(6)}, ${coords.lng.toFixed(6)})`);
+    } catch (error) {
+      console.warn(`Could not geocode "${params.location}":`, error);
+      // Insert without coords, update later if needed
+    }
+
+  const { data, error } = await supabase
+    .from('properties')
+    .insert(insertData)
     .select('*')
     .single();
 
+
   if (error) throw error;
+
+  if (data && params.files && params.files.length > 0) {
+    await uploadPropertyImages(data.id!, params.files, params.ownerId);
+  }
+
   return data as Property;
 }
 

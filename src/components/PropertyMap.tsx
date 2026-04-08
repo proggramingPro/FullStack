@@ -25,7 +25,7 @@ export default function PropertyMap({
   const map = useRef<LeafletMap | null>(null);
   const markers = useRef<Map<string, L.Marker>>(new Map());
   const [loading, setLoading] = useState(true);
-  const [propertyCoords, setPropertyCoords] = useState<Map<string, Coordinates>>(new Map());
+  const [propertyCoords, setPropertyCoords] = useState<Map<string, Coordinates>>(new Map()); // key by property.id
 
   useEffect(() => {
     const initMap = async () => {
@@ -57,18 +57,28 @@ export default function PropertyMap({
       const coords = new Map<string, Coordinates>();
 
       for (const property of properties) {
-        if (!propertyCoords.has(property.location)) {
-          const coord = await geocodeLocation(property.location);
-          coords.set(property.location, coord);
+        let coord: Coordinates | undefined;
+        if (property.lat !== undefined && property.lng !== undefined && property.lat !== 0 && property.lng !== 0) {
+          coord = { lat: property.lat, lng: property.lng };
+        } else if (!propertyCoords.has(property.id)) {
+          coord = await geocodeLocation(property.location);
+        }
+
+        if (coord && !propertyCoords.has(property.id)) {
+          coords.set(property.id, coord);
         }
       }
 
-      if (coords.size > 0) {
-        setPropertyCoords((prev) => new Map([...prev, ...coords]));
+  if (coords.size > 0) {
+        setPropertyCoords((prev) => {
+          const updated = new Map(prev);
+          coords.forEach((coord, id) => updated.set(id, coord));
+          return updated;
+        });
       }
 
       properties.forEach((property) => {
-        const coord = coords.get(property.location) || propertyCoords.get(property.location);
+        const coord = coords.get(property.id) || propertyCoords.get(property.id);
         if (!coord) return;
 
         if (markers.current.has(property.id)) {
@@ -84,7 +94,7 @@ export default function PropertyMap({
                   ? 'bg-gradient-to-r from-orange-600 to-pink-600 ring-2 ring-orange-300 scale-125'
                   : 'bg-gradient-to-r from-orange-500 to-pink-500 hover:scale-110'
               }" style="cursor: pointer;">
-                $${property.price_per_night}
+                ₹${property.price_per_night}
               </div>
             </div>
           `,
@@ -104,7 +114,7 @@ export default function PropertyMap({
           <div class="p-2">
             <p class="font-semibold text-gray-900">${property.title}</p>
             <p class="text-sm text-gray-600">${property.location}</p>
-            <p class="text-sm font-medium text-orange-600 mt-1">$${property.price_per_night}/night</p>
+            <p class="text-sm font-medium text-orange-600 mt-1">₹${property.price_per_night}/night</p>
             <div class="flex items-center mt-1">
               <span class="text-yellow-500 text-sm">★</span>
               <span class="text-sm text-gray-700 ml-1">${property.rating.toFixed(1)} (${property.review_count})</span>
@@ -133,11 +143,12 @@ export default function PropertyMap({
       ref={mapContainer}
       style={{
         height,
-        borderRadius: '12px',
+        width: '100%',
+        borderRadius: height === '100%' ? '0' : '12px',
         overflow: 'hidden',
         zIndex: 0,
       }}
-      className="w-full shadow-lg"
+      className={`w-full ${height === '100%' ? '' : 'shadow-lg'}`}
     />
   );
 }
