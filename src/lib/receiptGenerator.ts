@@ -189,16 +189,16 @@ export function generateReceipt(booking: BookingWithProperty): void {
         <div class="section">
           <div class="section-title">Payment Details</div>
           <div class="info-row">
-            <span class="label">$${booking.property.price_per_night} × ${nights} nights:</span>
-            <span class="value">$${subtotal.toFixed(2)}</span>
+            <span class="label">₹${booking.property.price_per_night} × ${nights} nights:</span>
+            <span class="value">₹${subtotal.toFixed(2)}</span>
           </div>
           <div class="info-row">
             <span class="label">Service Fee (10%):</span>
-            <span class="value">$${serviceFee.toFixed(2)}</span>
+            <span class="value">₹${serviceFee.toFixed(2)}</span>
           </div>
           <div class="total-row">
             <span>Total Amount:</span>
-            <span>$${booking.total_price.toFixed(2)}</span>
+            <span>₹${booking.total_price.toFixed(2)}</span>
           </div>
         </div>
 

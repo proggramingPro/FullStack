@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Calendar, Users } from 'lucide-react';
 import type { Property } from '../types/database';
 import { supabase } from '../lib/supabase';
+import { loadRazorpay } from '../lib/loadRazorpay';
 
 interface BookingCardProps {
   property: Property;
@@ -52,27 +53,94 @@ export default function BookingCard({ property }: BookingCardProps) {
         return;
       }
 
-      const insertData = {
-        property_id: property.id,
-        user_id: user.id,
-        check_in: checkIn,
-        check_out: checkOut,
-        guests,
-        total_price: total,
-        status: 'confirmed',
-        booking_reference: `REF-₹{Date.now()}-₹{Math.random().toString(36).slice(2, 8).toUpperCase()}`,
+      const isLoaded = await loadRazorpay();
+      if (!isLoaded) {
+        setMessage('Razorpay SDK failed to load. Are you online?');
+        setBooking(false);
+        return;
+      }
+
+      // Create order on backend
+      const orderRes = await fetch('http://localhost:5000/api/payment/create-order', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ amount: total, currency: 'INR' })
+      });
+      const order = await orderRes.json();
+
+      if (!order || !order.id) {
+        setMessage('Server error. Unable to create order.');
+        setBooking(false);
+        return;
+      }
+
+      const options = {
+        key: 'rzp_test_SbSMsHzpL9tij9', // Using test key
+        amount: order.amount,
+        currency: order.currency,
+        name: 'Property Booking',
+        description: `Booking for ${property.title}`,
+        order_id: order.id,
+        handler: async function (response: any) {
+          try {
+            // Verify payment on backend
+            const verifyRes = await fetch('http://localhost:5000/api/payment/verify', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature
+              })
+            });
+            const verifyData = await verifyRes.json();
+
+            if (verifyData.success) {
+              // Insert into Supabase
+              const insertData = {
+                property_id: property.id,
+                user_id: user.id,
+                check_in: checkIn,
+                check_out: checkOut,
+                guests,
+                total_price: total,
+                status: 'confirmed',
+                booking_reference: response.razorpay_payment_id,
+              };
+              const { error } = await (supabase.from('bookings') as any).insert(insertData);
+              if (error) throw error;
+
+              setMessage('Payment successful & booking confirmed!');
+              setCheckIn('');
+              setCheckOut('');
+              setGuests(1);
+            } else {
+              setMessage('Payment verification failed.');
+            }
+          } catch (err: any) {
+             setMessage('Error completing booking: ' + err.message);
+          } finally {
+             setBooking(false);
+          }
+        },
+        prefill: {
+          name: user.email || 'Guest User',
+          email: user.email || 'guest@example.com'
+        },
+        theme: {
+          color: '#F97316' // Orange-500
+        }
       };
-      const { error } = await (supabase.from('bookings') as any).insert(insertData);
 
-      if (error) throw error;
+      const paymentObject = new window.Razorpay(options);
+      paymentObject.on('payment.failed', function (response: any) {
+         setMessage('Payment failed: ' + response.error.description);
+         setBooking(false);
+      });
+      paymentObject.open();
 
-      setMessage('Booking confirmed! Check your profile for details.');
-      setCheckIn('');
-      setCheckOut('');
-      setGuests(1);
     } catch (error: any) {
-      setMessage(error.message || 'Failed to create booking');
-    } finally {
+      setMessage(error.message || 'Failed to initialize payment');
       setBooking(false);
     }
   };
@@ -174,7 +242,7 @@ export default function BookingCard({ property }: BookingCardProps) {
       )}
 
       <p className="text-xs text-gray-500 text-center mt-4">
-        No payment required — booking is confirmed instantly
+        Powered by Razorpay Secure Payments
       </p>
     </div>
   );

@@ -78,33 +78,6 @@ export default function PropertyGrid({ filters }: PropertyGridProps) {
 
   return (
     <>
-      <div className="mb-6 flex justify-center">
-        <div className="flex bg-gray-200 rounded-lg p-1 gap-1">
-          <button
-            onClick={() => setViewMode('grid')}
-            className={`flex items-center space-x-2 px-4 py-2 rounded-md font-medium transition-all ${
-              viewMode === 'grid'
-                ? 'bg-white text-gray-900 shadow-sm'
-                : 'text-gray-600 hover:text-gray-900'
-            }`}
-          >
-            <Layout className="w-5 h-5" />
-            <span className="hidden sm:inline">Grid</span>
-          </button>
-          <button
-            onClick={() => setViewMode('map')}
-            className={`flex items-center space-x-2 px-4 py-2 rounded-md font-medium transition-all ${
-              viewMode === 'map'
-                ? 'bg-white text-gray-900 shadow-sm'
-                : 'text-gray-600 hover:text-gray-900'
-            }`}
-          >
-            <Map className="w-5 h-5" />
-            <span className="hidden sm:inline">Map</span>
-          </button>
-        </div>
-      </div>
-
       {viewMode === 'grid' ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {properties.map((property) => (
@@ -116,20 +89,24 @@ export default function PropertyGrid({ filters }: PropertyGridProps) {
           ))}
         </div>
       ) : (
-        <div className="fixed inset-0 z-40 bg-white flex flex-col max-h-screen overflow-hidden">
-          <div className="p-6 border-b bg-white/90 backdrop-blur-sm flex justify-center items-center gap-4 z-50 shrink-0">
+        <div className="space-y-4">
+          <div className="flex bg-gray-200 rounded-lg p-1 mx-auto max-w-max">
             <button
               onClick={() => setViewMode('grid')}
-              className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-orange-500 to-pink-500 text-white rounded-xl font-semibold shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-200"
+              className="flex items-center space-x-2 px-4 py-2 rounded-l-md font-medium transition-all bg-white text-gray-900 shadow-sm"
             >
               <Layout className="w-5 h-5" />
-              <span className="text-sm font-medium">Grid View</span>
+              <span className="hidden sm:inline">Grid</span>
             </button>
-            <div className="w-10 h-10 bg-gradient-to-r from-orange-500 to-pink-500 rounded-full flex items-center justify-center shadow-lg">
-              <Map className="w-5 h-5 text-white" />
-            </div>
+            <button
+              onClick={() => setViewMode('map')}
+              className="flex items-center space-x-2 px-4 py-2 rounded-r-md font-medium transition-all bg-white text-gray-900 shadow-sm"
+            >
+              <Map className="w-5 h-5" />
+              <span className="hidden sm:inline">Map</span>
+            </button>
           </div>
-          <div className="flex-1 min-h-0 overflow-hidden p-2 sm:p-4">
+          <div className="w-full h-[500px] lg:h-[600px] rounded-xl shadow-lg overflow-hidden">
             <PropertyMap
               properties={properties}
               selectedProperty={selectedProperty || undefined}
