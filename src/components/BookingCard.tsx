@@ -61,7 +61,7 @@ export default function BookingCard({ property }: BookingCardProps) {
       }
 
       // Create order on backend
-      const orderRes = await fetch('http://localhost:5000/api/payment/create-order', {
+      const orderRes = await fetch('https://fullstack-l8d0.onrender.com/api/payment/create-order', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ amount: total, currency: 'INR' })
