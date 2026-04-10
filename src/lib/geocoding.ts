@@ -56,30 +56,41 @@ const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeUR
   return { lat, lng };
 }
 
-/**
- * Breaks an Indian address into progressively simpler fallback queries.
- * e.g. "11, Mohiniraj App, Deovpur, Dhule, Maharashtra"
- *   → ["Deovpur, Dhule, Maharashtra, India"]
- *   → ["Dhule, Maharashtra, India"]
- *   → ["Dhule, India"]
- */
 function buildFallbackQueries(address: string): string[] {
-  const parts = address
+  // Normalize address
+  const cleanAddress = address.replace(/\s*,\s*/g, ',').trim();
+  
+  const parts = cleanAddress
     .split(',')
     .map((p) => p.trim())
     .filter(Boolean);
 
   const queries: string[] = [];
 
-  // Try full address first (structured format helps Nominatim)
-  queries.push(parts.join(', '));
+  const addQuery = (q: string) => {
+    if (!q) return;
+    const withCountry = /india/i.test(q) ? q : `${q}, India`;
+    queries.push(q);
+    queries.push(withCountry);
+  };
 
-  // Drop leading parts (house no, apartment name) progressively
+  // 1. Try full address first (structured format helps Nominatim)
+  addQuery(parts.join(', '));
+
+  // Regex to identify granular Indian address markers that commonly fail in OpenStreetMap
+  const granularRegex = /\b(plot|flat|shop|door|room|house|no\.?|number|bldg|building|block|phase|sector|area|survey)\s*([a-zA-Z0-9\-\/]+)?\b/gi;
+
+  // 2. Drop leading parts (house no, apartment name) progressively
   for (let i = 1; i < parts.length; i++) {
     const simplified = parts.slice(i).join(', ');
-    // Append "India" if not already present for better geo-disambiguation
-    const withCountry = /india/i.test(simplified) ? simplified : `${simplified}, India`;
-    queries.push(withCountry);
+    addQuery(simplified);
+  }
+
+  // 3. Try scrubbing highly specific granular terms from the original address if it lacks commas
+  // e.g., "Plot 43 Area 51 New Delhi" -> "New Delhi"
+  const scrubbedAddress = cleanAddress.replace(granularRegex, '').replace(/,/g, ' ').replace(/\s+/g, ' ').trim();
+  if (scrubbedAddress && scrubbedAddress !== cleanAddress) {
+    addQuery(scrubbedAddress);
   }
 
   return [...new Set(queries)]; // dedupe

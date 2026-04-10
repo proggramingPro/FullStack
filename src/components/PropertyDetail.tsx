@@ -13,15 +13,28 @@ export default function PropertyDetail({ property, onClose }: PropertyDetailProp
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [showMap, setShowMap] = useState(false);
 
+  let images: string[] = [];
+  try {
+    if (Array.isArray(property?.image_urls)) {
+      images = property.image_urls;
+    } else if (typeof property?.image_urls === 'string') {
+      images = JSON.parse(property.image_urls);
+    }
+  } catch (e) {
+    images = [];
+  }
+
+  const FALLBACK_IMAGE = 'data:image/svg+xml;charset=UTF-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22400%22%20height%3D%22300%22%20viewBox%3D%220%200%20400%20300%22%3E%3Crect%20width%3D%22400%22%20height%3D%22300%22%20fill%3D%22%23e2e8f0%22%2F%3E%3Cpath%20d%3D%22M200%20100%20L100%20180%20H130%20V240%20H270%20V180%20H300%20Z%22%20fill%3D%22%2394a3b8%22%2F%3E%3C%2Fsvg%3E';
+
   const nextImage = () => {
     setCurrentImageIndex((prev) =>
-      prev === property.image_urls.length - 1 ? 0 : prev + 1
+      prev === images.length - 1 ? 0 : prev + 1
     );
   };
 
   const prevImage = () => {
     setCurrentImageIndex((prev) =>
-      prev === 0 ? property.image_urls.length - 1 : prev - 1
+      prev === 0 ? images.length - 1 : prev - 1
     );
   };
 
@@ -48,11 +61,17 @@ export default function PropertyDetail({ property, onClose }: PropertyDetailProp
 
           <div className="relative aspect-[16/9] md:aspect-[21/9] bg-gray-900">
             <img
-              src={property.image_urls[currentImageIndex]}
+              src={images[currentImageIndex] || FALLBACK_IMAGE}
               alt={property.title}
+              onError={(e) => {
+                const target = e.target as HTMLImageElement;
+                if (target.src !== FALLBACK_IMAGE) {
+                  target.src = FALLBACK_IMAGE;
+                }
+              }}
               className="w-full h-full object-cover"
             />
-            {property.image_urls.length > 1 && (
+            {images.length > 1 && (
               <>
                 <button
                   onClick={prevImage}
@@ -67,7 +86,7 @@ export default function PropertyDetail({ property, onClose }: PropertyDetailProp
                   <ChevronRight className="w-6 h-6" />
                 </button>
                 <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex space-x-2">
-                  {property.image_urls.map((_, index) => (
+                  {images.map((_, index) => (
                     <button
                       key={index}
                       onClick={() => setCurrentImageIndex(index)}

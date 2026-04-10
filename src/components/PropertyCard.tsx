@@ -7,6 +7,20 @@ interface PropertyCardProps {
 }
 
 export default function PropertyCard({ property, onClick }: PropertyCardProps) {
+  let images: string[] = [];
+  try {
+    if (Array.isArray(property?.image_urls)) {
+      images = property.image_urls;
+    } else if (typeof property?.image_urls === 'string') {
+      images = JSON.parse(property.image_urls);
+    }
+  } catch (e) {
+    images = [];
+  }
+  const FALLBACK_IMAGE = 'data:image/svg+xml;charset=UTF-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22400%22%20height%3D%22300%22%20viewBox%3D%220%200%20400%20300%22%3E%3Crect%20width%3D%22400%22%20height%3D%22300%22%20fill%3D%22%23e2e8f0%22%2F%3E%3Cpath%20d%3D%22M200%20100%20L100%20180%20H130%20V240%20H270%20V180%20H300%20Z%22%20fill%3D%22%2394a3b8%22%2F%3E%3C%2Fsvg%3E';
+  
+  const coverImage = images.length > 0 ? images[0] : FALLBACK_IMAGE;
+
   return (
     <div
       onClick={onClick}
@@ -14,11 +28,14 @@ export default function PropertyCard({ property, onClick }: PropertyCardProps) {
     >
       <div className="relative aspect-[4/3] overflow-hidden">
         <img
-          src={property.image_urls[0] || '/placeholder-house.jpg'}
+          src={coverImage}
           alt={property.title}
           loading="lazy"
           onError={(e) => {
-            (e.target as HTMLImageElement).src = 'https://via.placeholder.com/400x300/6B7280/FFFFFF?text=No+Image';
+            const target = e.target as HTMLImageElement;
+            if (target.src !== FALLBACK_IMAGE) {
+              target.src = FALLBACK_IMAGE;
+            }
           }}
           className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500 bg-gray-200"
         />

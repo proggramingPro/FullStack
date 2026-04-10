@@ -108,3 +108,26 @@ export async function getBookingHistory(userId: string): Promise<BookingWithProp
   if (error) throw error;
   return (data || []) as unknown as BookingWithProperty[];
 }
+
+export async function getReviewedPropertyIds(userId: string): Promise<string[]> {
+  const { data, error } = await supabase
+    .from('reviews')
+    .select('property_id')
+    .eq('user_id', userId);
+
+  if (error) throw error;
+  return data ? data.map(r => r.property_id) : [];
+}
+
+export async function submitReview(userId: string, propertyId: string, rating: number, comment: string): Promise<void> {
+  const { error } = await supabase
+    .from('reviews')
+    .insert({
+      user_id: userId,
+      property_id: propertyId,
+      rating,
+      comment
+    });
+
+  if (error) throw error;
+}

@@ -1,6 +1,10 @@
-import { Calendar, MapPin, Users, Eye } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Calendar, MapPin, Users, Eye, Star } from 'lucide-react';
 import type { BookingWithProperty } from '../../types/database';
 import { generateReceipt } from '../../lib/receiptGenerator';
+import { useAuth } from '../../contexts/AuthContext';
+import { getReviewedPropertyIds } from '../../lib/profileService';
+import ReviewModal from './ReviewModal';
 
 interface BookingHistoryProps {
   bookings: BookingWithProperty[];
@@ -8,6 +12,21 @@ interface BookingHistoryProps {
 }
 
 export default function BookingHistory({ bookings, onViewProperty }: BookingHistoryProps) {
+  const { user } = useAuth();
+  const [reviewedPropIds, setReviewedPropIds] = useState<string[]>([]);
+  const [reviewingBooking, setReviewingBooking] = useState<BookingWithProperty | null>(null);
+
+  useEffect(() => {
+    if (user) {
+      getReviewedPropertyIds(user.id).then(setReviewedPropIds).catch(console.error);
+    }
+  }, [user]);
+
+  const handleReviewSubmitted = (propertyId: string) => {
+    setReviewedPropIds((prev) => [...prev, propertyId]);
+    setReviewingBooking(null);
+  };
+
   if (bookings.length === 0) {
     return (
       <div className="bg-white rounded-2xl shadow-lg p-8">
@@ -43,8 +62,9 @@ export default function BookingHistory({ bookings, onViewProperty }: BookingHist
   };
 
   return (
-    <div className="bg-white rounded-2xl shadow-lg p-6 md:p-8">
+    <div className="bg-white rounded-2xl shadow-lg p-6 md:p-8 relative">
       <h2 className="text-2xl font-bold text-gray-900 mb-6">Booking History</h2>
+      
       <div className="space-y-4">
         {bookings.map((booking) => {
           const checkIn = new Date(booking.check_in);
@@ -54,6 +74,10 @@ export default function BookingHistory({ bookings, onViewProperty }: BookingHist
             (checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60 * 24)
           );
 
+          // Check if the stay is over
+          const isStayOver = new Date() > checkOut || booking.status === 'completed';
+          const hasReviewed = reviewedPropIds.includes(booking.property_id);
+
           return (
             <div
               key={booking.id}
@@ -61,8 +85,15 @@ export default function BookingHistory({ bookings, onViewProperty }: BookingHist
             >
               <div className="flex flex-col md:flex-row md:items-start space-y-4 md:space-y-0 md:space-x-6">
                 <img
-                  src={booking.property.image_urls[0]}
+                  src={booking.property.image_urls[0] || '/placeholder-house.jpg'}
                   alt={booking.property.title}
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement;
+                    const fallback = 'data:image/svg+xml;charset=UTF-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22400%22%20height%3D%22300%22%20viewBox%3D%220%200%20400%20300%22%3E%3Crect%20width%3D%22400%22%20height%3D%22300%22%20fill%3D%22%23e2e8f0%22%2F%3E%3Cpath%20d%3D%22M200%20100%20L100%20180%20H130%20V240%20H270%20V180%20H300%20Z%22%20fill%3D%22%2394a3b8%22%2F%3E%3C%2Fsvg%3E';
+                    if (target.src !== fallback) {
+                      target.src = fallback;
+                    }
+                  }}
                   className="w-full md:w-48 h-36 object-cover rounded-lg"
                 />
 
@@ -109,21 +140,39 @@ export default function BookingHistory({ bookings, onViewProperty }: BookingHist
                     <span>Ref: {booking.booking_reference}</span>
                   </div>
 
-                  <div className="flex flex-wrap gap-2 pt-2">
+                  <div className="flex flex-wrap items-center gap-2 pt-2">
                     <button
                       onClick={() => onViewProperty(booking)}
-                      className="flex items-center space-x-2 px-4 py-2 bg-orange-50 text-orange-600 hover:bg-orange-100 rounded-lg transition-colors"
+                      className="flex items-center space-x-2 px-4 py-2 bg-orange-50 text-orange-600 hover:bg-orange-100 rounded-lg transition-colors text-sm"
                     >
                       <Eye className="w-4 h-4" />
-                      <span>View Details</span>
+                      <span>View</span>
                     </button>
                     <button
                       onClick={() => generateReceipt(booking)}
-                      className="flex items-center space-x-2 px-4 py-2 bg-gray-100 text-gray-700 hover:bg-gray-200 rounded-lg transition-colors"
+                      className="flex items-center space-x-2 px-4 py-2 bg-gray-100 text-gray-700 hover:bg-gray-200 rounded-lg transition-colors text-sm"
                     >
                       <span>📄</span>
-                      <span>Download Receipt</span>
+                      <span>Receipt</span>
                     </button>
+                    
+                    {/* Make sure booking wasn't cancelled */}
+                    {isStayOver && booking.status !== 'cancelled' && (
+                      hasReviewed ? (
+                         <div className="flex items-center space-x-1 px-4 py-2 text-sm text-green-700 bg-green-50 rounded-lg">
+                           <Star className="w-4 h-4 fill-green-600" />
+                           <span>Reviewed</span>
+                         </div>
+                      ) : (
+                        <button
+                          onClick={() => setReviewingBooking(booking)}
+                          className="flex items-center space-x-1 px-4 py-2 bg-gray-900 text-white hover:bg-gray-800 rounded-lg transition-colors text-sm"
+                        >
+                          <Star className="w-4 h-4" />
+                          <span>Rate Stay</span>
+                        </button>
+                      )
+                    )}
                   </div>
                 </div>
               </div>
@@ -131,6 +180,15 @@ export default function BookingHistory({ bookings, onViewProperty }: BookingHist
           );
         })}
       </div>
+
+      {reviewingBooking && user && (
+        <ReviewModal
+          booking={reviewingBooking}
+          userId={user.id}
+          onClose={() => setReviewingBooking(null)}
+          onReviewSubmitted={handleReviewSubmitted}
+        />
+      )}
     </div>
   );
 }
