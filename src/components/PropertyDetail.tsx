@@ -1,4 +1,4 @@
-import { X, Star, MapPin, Users, Bed, Bath, Wifi, ChevronLeft, ChevronRight, Map } from 'lucide-react';
+import { X, Star, MapPin, Users, Bed, Bath, Wifi, ChevronLeft, ChevronRight, Map, Phone } from 'lucide-react';
 import { useState } from 'react';
 import type { Property } from '../types/database';
 import BookingCard from './BookingCard';
@@ -132,6 +132,16 @@ export default function PropertyDetail({ property, onClose }: PropertyDetailProp
                       <span className="font-medium">{property.bathrooms} bathrooms</span>
                     </div>
                   </div>
+
+                  {property.owner?.phone && (
+                    <div className="flex items-center space-x-2 py-4 border-b border-gray-200 text-gray-800">
+                      <Phone className="w-5 h-5 text-gray-600" />
+                      <span className="font-medium">Host Contact: {property.owner.phone}</span>
+                      {property.owner.full_name && (
+                        <span className="text-gray-600">({property.owner.full_name})</span>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 <div>

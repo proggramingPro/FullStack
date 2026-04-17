@@ -7,6 +7,8 @@ import ProfileInfo from './profile/ProfileInfo';
 import CurrentRentals from './profile/CurrentRentals';
 import BookingHistory from './profile/BookingHistory';
 import PropertyDetail from './PropertyDetail';
+import ListedProperties from './profile/ListedProperties';
+import { getMyHostApplication, getListedProperties } from '../lib/hostService';
 
 interface UserProfileProps {
   onClose: () => void;
@@ -19,7 +21,8 @@ export default function UserProfile({ onClose }: UserProfileProps) {
   const [bookingHistory, setBookingHistory] = useState<BookingWithProperty[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedBooking, setSelectedBooking] = useState<BookingWithProperty | null>(null);
-  const [activeTab, setActiveTab] = useState<'info' | 'current' | 'history'>('info');
+  const [activeTab, setActiveTab] = useState<'info' | 'current' | 'history' | 'listed'>('info');
+  const [isHost, setIsHost] = useState(false);
 
   useEffect(() => {
     loadProfileData();
@@ -43,14 +46,19 @@ export default function UserProfile({ onClose }: UserProfileProps) {
         }
       }
 
-      const [rentalsData, historyData] = await Promise.all([
+      const [rentalsData, historyData, hostApp, listedProps] = await Promise.all([
         getCurrentRentals(user.id),
         getBookingHistory(user.id),
+        getMyHostApplication(user.id),
+        getListedProperties(user.id),
       ]);
 
       setProfile(profileData);
       setCurrentRentals(rentalsData);
       setBookingHistory(historyData);
+      if (hostApp?.status === 'approved' || listedProps.length > 0) {
+        setIsHost(true);
+      }
     } catch (error) {
       console.error('Error loading profile data:', error);
     } finally {
@@ -119,6 +127,18 @@ export default function UserProfile({ onClose }: UserProfileProps) {
                   >
                     Booking History
                   </button>
+                  {isHost && (
+                    <button
+                      onClick={() => setActiveTab('listed')}
+                      className={`py-4 px-2 border-b-2 font-medium text-sm whitespace-nowrap transition-colors ${
+                        activeTab === 'listed'
+                          ? 'border-orange-500 text-orange-600'
+                          : 'border-transparent text-gray-600 hover:text-gray-900'
+                      }`}
+                    >
+                      Manage Properties
+                    </button>
+                  )}
                 </nav>
               </div>
             </div>
@@ -150,6 +170,10 @@ export default function UserProfile({ onClose }: UserProfileProps) {
                     bookings={bookingHistory}
                     onViewProperty={handleViewProperty}
                   />
+                )}
+
+                {activeTab === 'listed' && isHost && (
+                  <ListedProperties />
                 )}
               </div>
             )}

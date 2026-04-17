@@ -3,8 +3,8 @@ export interface Database {
     Tables: {
       properties: {
         Row: Property;
-        Insert: Omit<Property, 'id' | 'created_at' | 'rating' | 'review_count'>;
-        Update: Partial<Property>;
+        Insert: Omit<Property, 'id' | 'created_at' | 'rating' | 'review_count' | 'owner'>;
+        Update: Partial<Omit<Property, 'owner'>>;
       };
       host_applications: {
         Row: HostApplication;
@@ -48,6 +48,7 @@ export interface Property {
   rating: number;
   review_count: number;
   created_at: string;
+  owner?: { full_name: string | null; phone: string | null; email?: string } | null;
 }
 
 

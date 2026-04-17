@@ -50,8 +50,26 @@ export default function PropertyGrid({ filters }: PropertyGridProps) {
       const { data, error } = await query;
 
       if (error) throw error;
-      console.log('Fetched properties:', data?.map(p => ({ id: p.id, image_count: p.image_urls?.length || 0, first_image: p.image_urls?.[0] })) || []);
-      setProperties(data || []);
+      
+      const fetchedProps = data || [];
+      const ownerIds = Array.from(new Set(fetchedProps.map(p => p.owner_id).filter(Boolean))) as string[];
+      
+      if (ownerIds.length > 0) {
+        const { getProfilesByIds } = await import('../lib/profileService');
+        try {
+          const profilesMap = await getProfilesByIds(ownerIds);
+          fetchedProps.forEach(p => {
+            if (p.owner_id && profilesMap[p.owner_id]) {
+              p.owner = profilesMap[p.owner_id];
+            }
+          });
+        } catch (profileErr) {
+          console.error('Failed to fetch property owner profiles:', profileErr);
+        }
+      }
+
+      console.log('Fetched properties:', fetchedProps.map(p => ({ id: p.id, image_count: p.image_urls?.length || 0, first_image: p.image_urls?.[0] })));
+      setProperties(fetchedProps);
     } catch (error) {
       console.error('Error fetching properties:', error);
     } finally {

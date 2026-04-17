@@ -1,4 +1,4 @@
-import { Star, MapPin, Users } from 'lucide-react';
+import { Star, MapPin, Users, Phone } from 'lucide-react';
 import type { Property } from '../types/database';
 
 interface PropertyCardProps {
@@ -75,6 +75,8 @@ export default function PropertyCard({ property, onClick }: PropertyCardProps) {
           </div>
           <span className="text-xs text-gray-500">{property.review_count} reviews</span>
         </div>
+
+
       </div>
     </div>
   );

@@ -37,6 +37,41 @@ export async function applyToBecomeHost(params: {
   if (error) throw error;
 }
 
+export async function getListedProperties(ownerId: string): Promise<Property[]> {
+  const { data, error } = await supabase
+    .from('properties')
+    .select('*')
+    .eq('owner_id', ownerId)
+    .order('created_at', { ascending: false });
+
+  if (error) throw error;
+  return data || [];
+}
+
+export async function updateListedProperty(
+  propertyId: string,
+  ownerId: string,
+  updates: Partial<Property>
+): Promise<void> {
+  const { error } = await supabase
+    .from('properties')
+    .update(updates)
+    .eq('id', propertyId)
+    .eq('owner_id', ownerId); // Double check owner
+
+  if (error) throw error;
+}
+
+export async function deleteListedProperty(propertyId: string, ownerId: string): Promise<void> {
+  const { error } = await supabase
+    .from('properties')
+    .delete()
+    .eq('id', propertyId)
+    .eq('owner_id', ownerId); // Double check owner
+
+  if (error) throw error;
+}
+
 
 export async function createRentalHouse(params: {
   ownerId: string;
