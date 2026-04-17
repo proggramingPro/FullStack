@@ -83,8 +83,8 @@ export default function BookingCard({ property }: BookingCardProps) {
         order_id: order.id,
         handler: async function (response: any) {
           try {
-            // Verify payment on backend
-            const verifyRes = await fetch('http://localhost:5000/api/payment/verify', {
+            // Verify payment on backend 
+            const verifyRes = await fetch('https://fullstack-l8d0.onrender.com/api/payment/verify', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
