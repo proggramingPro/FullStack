@@ -188,6 +188,61 @@ export default function AdminDashboard({ onClose }: AdminDashboardProps) {
                 </div>
               )}
 
+              {activeTab === 'renters' && (
+                <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+                  <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
+                    <h2 className="text-lg font-semibold text-gray-900">Renters</h2>
+                  </div>
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-gray-200 text-sm">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th className="px-4 py-2 text-left text-gray-500">Renter</th>
+                          <th className="px-4 py-2 text-left text-gray-500">Contact</th>
+                          <th className="px-4 py-2 text-left text-gray-500">Properties Rented</th>
+                          <th className="px-4 py-2 text-right text-gray-500">Bookings</th>
+                          <th className="px-4 py-2 text-right text-gray-500">Total Spent</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-200">
+                        {renters.map((r, i) => (
+                          <tr key={r.renter?.id || i}>
+                            <td className="px-4 py-2">
+                              <div className="flex items-center gap-3">
+                                {r.renter?.avatar_url ? (
+                                  <img src={r.renter.avatar_url} alt="" className="w-8 h-8 rounded-full object-cover" />
+                                ) : (
+                                  <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center shrink-0">
+                                    <Users className="w-4 h-4 text-gray-400" />
+                                  </div>
+                                )}
+                                <span className="font-medium text-gray-900">{r.renter?.full_name || 'Unknown Renter'}</span>
+                              </div>
+                            </td>
+                            <td className="px-4 py-2 text-gray-500">{r.renter?.phone || 'No phone'}</td>
+                            <td className="px-4 py-2">
+                              <div className="flex flex-wrap gap-1">
+                                {r.properties && r.properties.length > 0 ? (
+                                  r.properties.map((p, idx) => (
+                                    <span key={idx} className="px-2 py-0.5 bg-blue-50 text-blue-700 rounded-full text-xs whitespace-nowrap">
+                                      {p}
+                                    </span>
+                                  ))
+                                ) : (
+                                  <span className="text-gray-400 italic">None</span>
+                                )}
+                              </div>
+                            </td>
+                            <td className="px-4 py-2 text-right font-medium">{r.bookingCount}</td>
+                            <td className="px-4 py-2 text-right font-bold text-gray-900">₹{r.totalSpent.toLocaleString()}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
               {activeTab === 'hosts' && (
                 <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
                    <div className="px-4 py-3 border-b border-gray-100">

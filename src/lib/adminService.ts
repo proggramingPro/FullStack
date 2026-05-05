@@ -10,6 +10,7 @@ export interface RenterStats {
   renter: Profile | null;
   bookingCount: number;
   totalSpent: number;
+  properties: string[];
 }
 
 export interface AdminOverview {
@@ -82,31 +83,35 @@ export async function getAdminOverview(): Promise<AdminOverview> {
 export async function getRenterStats(): Promise<RenterStats[]> {
   const { data, error } = await supabase
     .from('bookings')
-    .select('user_id, total_price')
+    .select(`
+      user_id, 
+      total_price,
+      property:properties(title)
+    `)
     .order('created_at', { ascending: false });
 
   if (error) throw error;
 
   const statsMap = new Map<
     string,
-    { bookingCount: number; totalSpent: number }
+    { bookingCount: number; totalSpent: number; properties: Set<string> }
   >();
 
   for (const row of data || []) {
-    const { user_id, total_price } = row as {
-      user_id: string;
-      total_price: number;
-    };
+    const { user_id, total_price, property } = row as any;
+    const propertyTitle = property?.title || 'Unknown Property';
 
     const existing = statsMap.get(user_id);
 
     if (existing) {
       existing.bookingCount += 1;
       existing.totalSpent += total_price || 0;
+      existing.properties.add(propertyTitle);
     } else {
       statsMap.set(user_id, {
         bookingCount: 1,
         totalSpent: total_price || 0,
+        properties: new Set([propertyTitle]),
       });
     }
   }
@@ -119,6 +124,7 @@ export async function getRenterStats(): Promise<RenterStats[]> {
       renter: profilesMap[user_id] ?? null,
       bookingCount: stats.bookingCount,
       totalSpent: stats.totalSpent,
+      properties: Array.from(stats.properties),
     }))
     .sort((a, b) => b.totalSpent - a.totalSpent);
 }
